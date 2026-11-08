@@ -57,4 +57,6 @@ npm run dev        # http://localhost:5173
 
 ## Tecnologia
 
+A interface segue o design do editor [Excalidraw](https://github.com/excalidraw/excalidraw) (MIT). As fontes Excalifont e Comic Shanns em `src/fonts` vêm do pacote `@excalidraw/excalidraw`; licenças em [src/fonts/README.md](src/fonts/README.md). Este projeto não é afiliado ao Excalidraw.
+
 React 19, TypeScript e Vite; estado em [Zustand](https://github.com/pmndrs/zustand); traço por [Rough.js](https://roughjs.com/) e [perfect-freehand](https://github.com/steveruizok/perfect-freehand). A arquitetura está descrita em [CLAUDE.md](CLAUDE.md).

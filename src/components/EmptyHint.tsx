@@ -5,10 +5,8 @@ export function EmptyHint() {
   if (!empty) return null;
   return (
     <div className="empty-hint" aria-hidden="true">
-      <h1>
-        <mark>excalidrawell</mark>
-      </h1>
-      <p>Escolha uma ferramenta à esquerda e desenhe.</p>
+      <h1>Excalidrawell</h1>
+      <p>Seus desenhos ficam salvos neste navegador.</p>
       <p className="empty-keys">
         <kbd>R</kbd> retângulo <kbd>A</kbd> seta <kbd>T</kbd> texto <kbd>?</kbd> todos os atalhos
       </p>

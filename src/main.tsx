@@ -1,7 +1,8 @@
-import '@fontsource/atkinson-hyperlegible/400.css';
-import '@fontsource/atkinson-hyperlegible/700.css';
-import '@fontsource/jetbrains-mono/400.css';
-import '@fontsource/kalam/400.css';
+import '@fontsource/assistant/400.css';
+import '@fontsource/assistant/500.css';
+import '@fontsource/assistant/600.css';
+import '@fontsource/assistant/700.css';
+import '@fontsource/nunito/400.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';

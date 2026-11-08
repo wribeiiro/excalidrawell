@@ -14,6 +14,7 @@ import { parseScene, serializeScene } from '../io/scene';
 import { useStore } from '../store/store';
 import { anchorPoint, updateBindings } from './binding';
 import { align, cloneElements, distribute, removeElements, reorder } from './operations';
+import { edgeHandleAt } from './selection';
 import { resizeElement, resizeElements, rotateElements } from './transform';
 
 const box = (x: number, y: number, w: number, h: number, patch: Partial<ShapeElement> = {}) => ({
@@ -81,6 +82,25 @@ describe('transformação em grupo', () => {
     expect(r.angle).toBe(0);
     near(r.points[1][0], 0);
     near(r.points[1][1], 10);
+  });
+});
+
+describe('bordas da seleção', () => {
+  const frame = { x: 100, y: 100, width: 200, height: 100, angle: 0 };
+  const r = [box(100, 100, 200, 100)];
+
+  it('identifica cada lado e ignora o interior', () => {
+    expect(edgeHandleAt(frame, [200, 96], 1, r)).toBe('n');
+    expect(edgeHandleAt(frame, [200, 204], 1, r)).toBe('s');
+    expect(edgeHandleAt(frame, [96, 150], 1, r)).toBe('w');
+    expect(edgeHandleAt(frame, [304, 150], 1, r)).toBe('e');
+    expect(edgeHandleAt(frame, [200, 150], 1, r)).toBeNull();
+  });
+
+  it('respeita a rotação e não redimensiona texto pelas bordas', () => {
+    expect(edgeHandleAt({ ...frame, angle: Math.PI / 2 }, [254, 150], 1, r)).toBe('n');
+    const text = { ...r[0], type: 'text', text: 'a' } as SceneElement;
+    expect(edgeHandleAt(frame, [200, 96], 1, [text])).toBeNull();
   });
 });
 

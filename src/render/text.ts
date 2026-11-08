@@ -1,9 +1,9 @@
 import type { FontFamily, ShapeElement } from '../model/types';
 
 export const FONT_STACKS: Record<FontFamily, string> = {
-  hand: 'Kalam, "Comic Sans MS", cursive',
-  sans: '"Atkinson Hyperlegible", system-ui, sans-serif',
-  mono: '"JetBrains Mono", ui-monospace, monospace',
+  hand: 'Excalifont, "Comic Sans MS", cursive',
+  sans: 'Nunito, system-ui, sans-serif',
+  mono: '"Comic Shanns", ui-monospace, monospace',
 };
 
 export const LINE_HEIGHT = 1.25;

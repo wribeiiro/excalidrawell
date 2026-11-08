@@ -24,6 +24,7 @@ import { findBindable, updateBindings } from '../scene/binding';
 import { cloneElements, removeElements, snapToGrid, translate } from '../scene/operations';
 import type { Frame, HandleName } from '../scene/selection';
 import {
+  edgeHandleAt,
   getHandles,
   getSelected,
   getSelectionFrame,
@@ -121,10 +122,11 @@ export class InteractionController {
     const reach = 9 / zoom;
     const frame = getSelectionFrame(selected);
     if (frame) {
-      for (const handle of getHandles(frame, zoom, selected)) {
+      for (const handle of getHandles(frame, zoom)) {
         if (distance(p, handle.point) <= reach) return { type: 'frame', name: handle.name, frame };
       }
-      return null;
+      const edge = edgeHandleAt(frame, p, zoom, selected);
+      return edge ? { type: 'frame', name: edge, frame } : null;
     }
     const el = selected[0];
     if (!isLinear(el)) return null;
