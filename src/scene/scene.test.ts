@@ -12,7 +12,7 @@ import {
 import type { LinearElement, Point, SceneElement, ShapeElement } from '../model/types';
 import { parseScene, serializeScene } from '../io/scene';
 import { useStore } from '../store/store';
-import { anchorPoint, updateBindings } from './binding';
+import { bindsOppositeEnd, createBinding, findBindable, findShapeAt, updateBindings } from './binding';
 import { align, cloneElements, distribute, removeElements, reorder } from './operations';
 import { edgeHandleAt } from './selection';
 import { resizeElement, resizeElements, rotateElements } from './transform';
@@ -95,6 +95,7 @@ describe('bordas da seleção', () => {
     expect(edgeHandleAt(frame, [96, 150], 1, r)).toBe('w');
     expect(edgeHandleAt(frame, [304, 150], 1, r)).toBe('e');
     expect(edgeHandleAt(frame, [200, 150], 1, r)).toBeNull();
+    expect(edgeHandleAt(frame, [100, 150], 1, r)).toBeNull();
   });
 
   it('respeita a rotação e não redimensiona texto pelas bordas', () => {
@@ -131,34 +132,88 @@ describe('hit test', () => {
 });
 
 describe('ligações de setas', () => {
-  it('ancora na borda com respiro', () => {
-    const [x, y] = anchorPoint(box(0, 0, 100, 100), [300, 50]);
-    expect([x, y]).toEqual([106, 50]);
+  const rect = () => box(600, 250, 200, 150);
+  const shape = (type: 'diamond' | 'ellipse') => ({ ...rect(), type }) as SceneElement;
+  const bound = (a: LinearElement, target: SceneElement, moved: SceneElement) => {
+    const bindingArrow = { ...a, endBinding: createBinding(a, target, 'end') };
+    const [, updated] = updateBindings([moved, bindingArrow], new Set([target.id])) as [SceneElement, LinearElement];
+    return [updated.x + updated.points[1][0], updated.y + updated.points[1][1]];
+  };
+
+  it('calcula foco e distância iguais aos do Excalidraw', () => {
+    const r = rect();
+    const a = createBinding(arrow([[300, 200], [596, 270]]), r, 'end');
+    expect(a.focus).toBeCloseTo(0.3082191, 5);
+    expect(a.gap).toBeCloseTo(5.2468, 3);
+    const b = createBinding(arrow([[790, 600], [760, 395]]), r, 'end');
+    expect(b.focus).toBeCloseTo(-0.4483516, 5);
+    expect(b.gap).toBeCloseTo(5, 5);
   });
 
-  it('acompanha a forma movida', () => {
-    const r = box(200, 0, 100, 100);
-    const a = arrow([[0, 50], [194, 50]], { endBinding: r.id });
-    const moved = { ...r, x: 400 };
-    const [, updated] = updateBindings([moved, a], new Set([r.id])) as [SceneElement, LinearElement];
-    near(updated.x + updated.points[1][0], 394);
+  it('mantém o ponto de encaixe quando a forma se move', () => {
+    const r = rect();
+    const [x, y] = bound(arrow([[300, 200], [596, 270]]), r, { ...r, y: 350 });
+    expect(Math.abs(x - 616.1)).toBeLessThan(2);
+    expect(Math.abs(y - 348.1)).toBeLessThan(2);
   });
+
+  it('segue o contorno de losangos e elipses', () => {
+    const a = arrow([[300, 200], [620, 300]]);
+    const d = shape('diamond');
+    const [dx, dy] = bound(a, d, { ...d, y: 350 });
+    expect(Math.abs(dx - 638)).toBeLessThan(3);
+    expect(Math.abs(dy - 390.13)).toBeLessThan(3);
+    const e = shape('ellipse');
+    const [ex, ey] = bound(a, e, { ...e, y: 350 });
+    expect(Math.abs(ex - 608.78)).toBeLessThan(2);
+    expect(Math.abs(ey - 373.69)).toBeLessThan(2);
+  });
+
+  it('não move a ponta ao apenas conectar', () => {
+    const r = rect();
+    const a = { ...arrow([[300, 200], [596, 270]]), endBinding: createBinding(arrow([[300, 200], [596, 270]]), r, 'end') };
+    expect(updateBindings([r, a])[1]).toBe(a);
+  });
+
+  it('conecta perto do contorno, mas não no miolo da forma', () => {
+    const r = rect();
+    expect(findBindable([r], [596, 270], null, 1)?.id).toBe(r.id);
+    expect(findBindable([r], [625, 300], null, 1)?.id).toBe(r.id);
+    expect(findBindable([r], [700, 325], null, 1)).toBeNull();
+    expect(findBindable([r], [500, 325], null, 1)).toBeNull();
+    expect(findShapeAt([r], [700, 325], 1)?.id).toBe(r.id);
+  });
+
+  it('seta simples não liga as duas pontas à mesma forma', () => {
+    const r = rect();
+    const a = { ...arrow([[595, 300], [595, 350]]), startBinding: { elementId: r.id, focus: 1, gap: 5 } };
+    expect(bindsOppositeEnd(a, r, 'end')).toBe(true);
+  });
+
+  const binding = (elementId: string) => ({ elementId, focus: 0, gap: 6 });
 
   it('solta a ligação quando a forma é excluída', () => {
     const r = box(200, 0, 100, 100);
-    const a = arrow([[0, 50], [194, 50]], { endBinding: r.id });
+    const a = arrow([[0, 50], [194, 50]], { endBinding: binding(r.id) });
     const [remaining] = removeElements([r, a], new Set([r.id])) as LinearElement[];
     expect(remaining.endBinding).toBeNull();
   });
 
   it('clone só mantém ligações dentro do conjunto copiado', () => {
     const r = box(200, 0, 100, 100);
-    const a = arrow([[0, 50], [194, 50]], { endBinding: r.id });
+    const a = arrow([[0, 50], [194, 50]], { endBinding: binding(r.id) });
     const [alone] = cloneElements([a], 0, 0) as LinearElement[];
     expect(alone.endBinding).toBeNull();
     const [cr, ca] = cloneElements([r, a], 0, 0) as [SceneElement, LinearElement];
-    expect(ca.endBinding).toBe(cr.id);
+    expect(ca.endBinding?.elementId).toBe(cr.id);
     expect(cr.id).not.toBe(r.id);
+  });
+
+  it('abre arquivos com ligações no formato antigo', () => {
+    const r = box(200, 0, 100, 100);
+    const raw = { ...arrow([[0, 50], [194, 50]]), endBinding: r.id };
+    const { elements } = parseScene(JSON.stringify({ type: 'excalidrawell', schemaVersion: 1, elements: [r, raw], files: {} }));
+    expect((elements[1] as LinearElement).endBinding).toEqual(binding(r.id));
   });
 });
 

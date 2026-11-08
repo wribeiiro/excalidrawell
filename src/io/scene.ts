@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { DEFAULT_STYLE, newSeed } from '../model/elements';
-import type { Point, SceneElement, SceneFiles } from '../model/types';
+import type { Point, PointBinding, SceneElement, SceneFiles } from '../model/types';
 import { updateBindings } from '../scene/binding';
 import { isSafeImageUrl } from './images';
 
@@ -21,6 +21,15 @@ const finite = (v: unknown, fallback: number) =>
 /** Devolve `value` se for string aceita (qualquer uma, com `allowed` nulo). */
 function oneOf<T extends string>(value: unknown, allowed: string[] | null, fallback: T): T {
   return typeof value === 'string' && (!allowed || allowed.includes(value)) ? (value as T) : fallback;
+}
+
+/** Aceita o formato atual e o antigo, em que a ligação era só o id da forma. */
+function restoreBinding(raw: unknown): PointBinding | null {
+  if (typeof raw === 'string') return { elementId: raw, focus: 0, gap: 6 };
+  if (!raw || typeof raw !== 'object') return null;
+  const { elementId, focus, gap } = raw as Record<string, unknown>;
+  if (typeof elementId !== 'string') return null;
+  return { elementId, focus: finite(focus, 0), gap: Math.max(1, finite(gap, 6)) };
 }
 
 function validPoints(v: unknown, min: number): boolean {
@@ -79,8 +88,8 @@ function restoreElement(raw: Record<string, unknown>, files: SceneFiles): SceneE
       angle: 0,
       startArrowhead: oneOf(raw.startArrowhead, heads, 'none'),
       endArrowhead: oneOf(raw.endArrowhead, heads, 'none'),
-      startBinding: typeof raw.startBinding === 'string' ? raw.startBinding : null,
-      endBinding: typeof raw.endBinding === 'string' ? raw.endBinding : null,
+      startBinding: restoreBinding(raw.startBinding),
+      endBinding: restoreBinding(raw.endBinding),
     });
   }
   if (type === 'freedraw') {

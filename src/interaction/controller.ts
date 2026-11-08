@@ -20,7 +20,8 @@ import { getElementAt, hitElement } from '../math/hitTest';
 import { measureText } from '../render/text';
 import { expandGroups, finishEditing, startEditing } from '../store/commands';
 import { useStore } from '../store/store';
-import { findBindable, updateBindings } from '../scene/binding';
+import type { ArrowEnd } from '../scene/binding';
+import { bindsOppositeEnd, createBinding, findBindable, findShapeAt, updateBindings } from '../scene/binding';
 import { cloneElements, removeElements, snapToGrid, translate } from '../scene/operations';
 import type { Frame, HandleName } from '../scene/selection';
 import {
@@ -168,8 +169,7 @@ export class InteractionController {
   private textAt(p: Point) {
     const s = store();
     const hit =
-      getElementAt(s.elements, p, s.viewport.zoom) ??
-      findBindable(s.elements, p, null, s.viewport.zoom);
+      getElementAt(s.elements, p, s.viewport.zoom) ?? findShapeAt(s.elements, p, s.viewport.zoom);
     if (hit && (hit.type === 'text' || isShape(hit))) {
       startEditing(hit.id);
       return;
@@ -356,7 +356,7 @@ export class InteractionController {
       }
       case 'linear-new':
       case 'multipoint':
-        this.moveLastVertex(mode.id, snapped, e.shiftKey);
+        this.moveLastVertex(mode.id, snapped, e);
         break;
       case 'erase':
         this.eraseAlong(mode.last, p);
@@ -415,7 +415,7 @@ export class InteractionController {
         const dragged = Math.hypot(e.clientX - mode.downX, e.clientY - mode.downY) > 5;
         if (dragged) {
           this.mode = { kind: 'idle' };
-          this.finishLinear(mode.id);
+          this.finishLinear(mode.id, noBinding(e));
         } else {
           this.mode = { kind: 'multipoint', id: mode.id };
         }
@@ -432,7 +432,10 @@ export class InteractionController {
         s.set({ marquee: null });
         break;
       case 'drag':
-        if (mode.moved) s.commit();
+        if (mode.moved) {
+          this.rebindDraggedArrows(mode.starts, noBinding(e));
+          store().commit();
+        }
         else if (mode.clearOnClick) s.select([]);
         break;
       case 'resize':
@@ -440,7 +443,7 @@ export class InteractionController {
         s.commit();
         break;
       case 'point':
-        this.finishPoint(mode);
+        this.finishPoint(mode, noBinding(e));
         break;
     }
     this.mode = { kind: 'idle' };
@@ -506,16 +509,16 @@ export class InteractionController {
     if (cursor !== s.cursor) s.set({ cursor });
   }
 
-  private moveLastVertex(id: string, target: Point, shift: boolean) {
+  private moveLastVertex(id: string, target: Point, e: PointerEvent) {
     const s = store();
     const el = this.find(id);
     if (!el || !isLinear(el)) return;
     const abs = absolutePoints(el);
     const last = abs.length - 1;
-    abs[last] = shift ? snapAngle(abs[last - 1], target) : target;
+    abs[last] = e.shiftKey ? snapAngle(abs[last - 1], target) : target;
     this.update(id, (cur) => withAbsolutePoints(cur as LinearElement, abs));
     if (el.type === 'arrow') {
-      const bind = findBindable(s.elements, abs[last], id, s.viewport.zoom);
+      const bind = noBinding(e) ? null : findBindable(s.elements, abs[last], id, s.viewport.zoom);
       s.set({ bindTargetId: bind?.id ?? null });
     }
   }
@@ -555,7 +558,7 @@ export class InteractionController {
     return true;
   }
 
-  private finishLinear(id: string) {
+  private finishLinear(id: string, disableBinding = false) {
     const s = store();
     this.lastFinish = performance.now();
     const el = this.find(id);
@@ -564,20 +567,35 @@ export class InteractionController {
       s.revert();
       return;
     }
-    if (el.type === 'arrow') {
-      const abs = absolutePoints(el);
-      const zoom = s.viewport.zoom;
-      const start = findBindable(s.elements, abs[0], id, zoom);
-      const end = findBindable(s.elements, abs[abs.length - 1], id, zoom);
-      this.update(id, (cur) => ({
-        ...cur,
-        startBinding: start?.id ?? null,
-        endBinding: end?.id ?? null,
-      }));
-      store().setElements(updateBindings(store().elements, new Set([id])));
-    }
+    if (el.type === 'arrow' && !disableBinding) this.update(id, () => this.bindEnds(el));
     store().commit();
     this.toolDone([id]);
+  }
+
+  /** Liga cada ponta à forma ao alcance, sem mover a ponta. */
+  private bindEnds(arrow: LinearElement, keep?: (end: ArrowEnd) => boolean): LinearElement {
+    const s = store();
+    const abs = absolutePoints(arrow);
+    let result = arrow;
+    for (const end of ['start', 'end'] as const) {
+      if (keep?.(end)) continue;
+      const key = end === 'start' ? 'startBinding' : 'endBinding';
+      const point = end === 'start' ? abs[0] : abs[abs.length - 1];
+      const target = findBindable(s.elements, point, arrow.id, s.viewport.zoom);
+      const valid = target && !bindsOppositeEnd(result, target, end);
+      result = { ...result, [key]: valid ? createBinding(result, target, end) : null };
+    }
+    return result;
+  }
+
+  /** Ao soltar setas arrastadas, as pontas se religam ao que estiver por perto. */
+  private rebindDraggedArrows(starts: Map<string, SceneElement>, disableBinding: boolean) {
+    for (const id of starts.keys()) {
+      const arrow = this.find(id);
+      if (!arrow || arrow.type !== 'arrow') continue;
+      const keep = (end: ArrowEnd) => (end === 'start' ? arrow.startBinding : arrow.endBinding) !== null;
+      this.update(id, () => (disableBinding ? arrow : this.bindEnds(arrow, keep)));
+    }
   }
 
   private eraseAlong(a: Point, b: Point) {
@@ -623,8 +641,8 @@ export class InteractionController {
         if (!isLinear(el)) continue;
         mode.starts.set(id, {
           ...el,
-          startBinding: el.startBinding && mode.starts.has(el.startBinding) ? el.startBinding : null,
-          endBinding: el.endBinding && mode.starts.has(el.endBinding) ? el.endBinding : null,
+          startBinding: el.startBinding && mode.starts.has(el.startBinding.elementId) ? el.startBinding : null,
+          endBinding: el.endBinding && mode.starts.has(el.endBinding.elementId) ? el.endBinding : null,
         });
       }
       if (e.altKey && !mode.duplicated) {
@@ -709,21 +727,21 @@ export class InteractionController {
       endBinding: isEnd ? null : (cur as LinearElement).endBinding,
     }));
     if (el.type === 'arrow' && (isStart || isEnd)) {
-      const bind = findBindable(s.elements, abs[mode.index], mode.id, s.viewport.zoom);
+      const bind = noBinding(e) ? null : findBindable(s.elements, abs[mode.index], mode.id, s.viewport.zoom);
       s.set({ bindTargetId: bind?.id ?? null });
     }
   }
 
-  private finishPoint(mode: Extract<Mode, { kind: 'point' }>) {
+  private finishPoint(mode: Extract<Mode, { kind: 'point' }>, disableBinding: boolean) {
     const s = store();
-    const target = s.bindTargetId;
+    const target = s.elements.find((el) => el.id === s.bindTargetId);
     s.set({ bindTargetId: null });
-    if (target) {
-      const el = this.find(mode.id);
-      if (el && isLinear(el)) {
-        const key = mode.index === 0 ? 'startBinding' : 'endBinding';
-        this.update(mode.id, (cur) => ({ ...cur, [key]: target }));
-        store().setElements(updateBindings(store().elements, new Set([mode.id])));
+    const arrow = this.find(mode.id);
+    if (target && !disableBinding && arrow?.type === 'arrow') {
+      const end: ArrowEnd = mode.index === 0 ? 'start' : 'end';
+      if (!bindsOppositeEnd(arrow, target, end)) {
+        const key = end === 'start' ? 'startBinding' : 'endBinding';
+        this.update(mode.id, () => ({ ...arrow, [key]: createBinding(arrow, target, end) }));
       }
     }
     store().commit();
@@ -797,6 +815,9 @@ export class InteractionController {
     return this.mode.kind !== 'idle';
   }
 }
+
+/** Ctrl ou Cmd impede a seta de se conectar. */
+const noBinding = (e: PointerEvent) => e.ctrlKey || e.metaKey;
 
 function sizeShape(el: SceneElement, origin: Point, p: Point, e: PointerEvent): SceneElement {
   let dx = p[0] - origin[0];

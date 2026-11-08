@@ -72,18 +72,15 @@ export function edgeHandleAt(
   if (selected.some((el) => el.type === 'text')) return null;
   const c: Point = [frame.x + frame.width / 2, frame.y + frame.height / 2];
   const [x, y] = rotate(p, c, -frame.angle);
-  const pad = 4 / zoom;
-  const reach = 5 / zoom;
-  const left = frame.x - pad;
-  const right = frame.x + frame.width + pad;
-  const top = frame.y - pad;
-  const bottom = frame.y + frame.height + pad;
-  const withinX = x >= left && x <= right;
-  const withinY = y >= top && y <= bottom;
-  if (withinX && Math.abs(y - top) <= reach) return 'n';
-  if (withinX && Math.abs(y - bottom) <= reach) return 's';
-  if (withinY && Math.abs(x - left) <= reach) return 'w';
-  if (withinY && Math.abs(x - right) <= reach) return 'e';
+  // A faixa fica por fora do contorno, para clicar na borda da forma continuar movendo.
+  const inner = 2 / zoom;
+  const outer = 12 / zoom;
+  const dx = Math.abs(x - c[0]) - frame.width / 2;
+  const dy = Math.abs(y - c[1]) - frame.height / 2;
+  const inBandX = dx >= inner && dx <= outer;
+  const inBandY = dy >= inner && dy <= outer;
+  if (inBandY && dx <= outer) return y < c[1] ? 'n' : 's';
+  if (inBandX && dy <= outer) return x < c[0] ? 'w' : 'e';
   return null;
 }
 

@@ -59,12 +59,21 @@ export interface TextElement extends BaseElement, TextProps {
   text: string;
 }
 
+/** Onde a ponta de uma seta encosta na forma ligada. */
+export interface PointBinding {
+  elementId: string;
+  /** Por onde a seta passa em relação ao centro: 0 mira o centro. */
+  focus: number;
+  /** Distância entre a ponta e o contorno. */
+  gap: number;
+}
+
 export interface LinearElement extends BaseElement, ArrowProps {
   type: 'line' | 'arrow';
   /** Relativos a (x, y); points[0] é sempre [0, 0]. */
   points: Point[];
-  startBinding: string | null;
-  endBinding: string | null;
+  startBinding: PointBinding | null;
+  endBinding: PointBinding | null;
 }
 
 export interface FreedrawElement extends BaseElement {

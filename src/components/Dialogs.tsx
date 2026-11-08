@@ -95,6 +95,7 @@ const SHORTCUTS: [string, [string, string][]][] = [
       ['Proporção ou ângulo de 15°', 'Shift'],
       ['Desenhar a partir do centro', 'Alt'],
       ['Linha com vários pontos', 'clique a clique'],
+      ['Soltar seta sem conectar', 'Ctrl'],
       ['Terminar linha', 'Enter ou Esc'],
       ['Remover ponto da linha', 'clique duplo no ponto'],
     ],
