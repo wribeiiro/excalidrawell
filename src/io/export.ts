@@ -1,6 +1,6 @@
-import atkinsonUrl from '@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-400-normal.woff2?url';
-import monoUrl from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url';
-import kalamUrl from '@fontsource/kalam/files/kalam-latin-400-normal.woff2?url';
+import nunitoUrl from '@fontsource/nunito/files/nunito-latin-400-normal.woff2?url';
+import comicShannsUrl from '../fonts/ComicShanns-latin.woff2?url';
+import excalifontUrl from '../fonts/Excalifont-latin.woff2?url';
 import rough from 'roughjs';
 import type { FontFamily, SceneElement, SceneFiles, ShapeElement } from '../model/types';
 import { isLinear, isShape } from '../model/types';
@@ -50,9 +50,9 @@ export const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob> =>
   );
 
 const FONT_URLS: Record<FontFamily, [string, string]> = {
-  hand: ['Kalam', kalamUrl],
-  sans: ['Atkinson Hyperlegible', atkinsonUrl],
-  mono: ['JetBrains Mono', monoUrl],
+  hand: ['Excalifont', excalifontUrl],
+  sans: ['Nunito', nunitoUrl],
+  mono: ['Comic Shanns', comicShannsUrl],
 };
 
 async function fontFaceCss(family: FontFamily): Promise<string> {

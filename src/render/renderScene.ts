@@ -38,7 +38,7 @@ function drawGrid(ctx: CanvasRenderingContext2D, p: SceneParams) {
   const x1 = p.width / zoom - scrollX;
   const y1 = p.height / zoom - scrollY;
   ctx.lineWidth = 1 / zoom;
-  ctx.strokeStyle = 'rgba(22,36,63,.09)';
+  ctx.strokeStyle = 'rgba(0,0,0,.07)';
   ctx.beginPath();
   for (let x = x0; x <= x1; x += step) {
     ctx.moveTo(x, y0);

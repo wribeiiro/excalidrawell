@@ -39,7 +39,11 @@ export async function startPersistence() {
         files,
         viewport:
           viewport && Number.isFinite(viewport.zoom) && viewport.zoom > 0 ? viewport : undefined,
-        style: { ...DEFAULT_STYLE, ...saved.style },
+        // Estilo salvo pela paleta anterior volta ao padrão atual.
+        style:
+          saved.style?.strokeColor === '#16243f'
+            ? DEFAULT_STYLE
+            : { ...DEFAULT_STYLE, ...saved.style },
         theme: saved.theme,
         grid: saved.grid === true,
       });

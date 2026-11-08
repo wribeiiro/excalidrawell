@@ -17,7 +17,7 @@ import type {
 export const GRID_SIZE = 20;
 
 export const DEFAULT_STYLE: StyleDefaults = {
-  strokeColor: '#16243f',
+  strokeColor: '#1e1e1e',
   backgroundColor: 'transparent',
   fillStyle: 'hachure',
   strokeWidth: 2,
@@ -25,7 +25,7 @@ export const DEFAULT_STYLE: StyleDefaults = {
   roughness: 1,
   roundness: 'round',
   opacity: 100,
-  fontSize: 24,
+  fontSize: 20,
   fontFamily: 'hand',
   textAlign: 'left',
   startArrowhead: 'none',

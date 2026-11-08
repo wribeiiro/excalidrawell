@@ -46,6 +46,7 @@ Quebrar qualquer um destes causa bugs difíceis de ver:
 
 - Interface, mensagens e documentação em português do Brasil; identificadores em inglês.
 - Texto de interface em sentence case, nome da ação igual ao longo do fluxo.
-- Cores só via variáveis CSS em `styles.css`. O marcador amarelo (`--marker`) indica sempre o estado ativo.
+- A interface segue o editor do Excalidraw (código aberto, MIT): cores, medidas e fontes em `styles.css` vêm dele. Cores só via variáveis CSS; estado ativo usa `--primary-container`.
+- Fontes: Assistant (interface), Excalifont, Nunito e Comic Shanns (canvas). O nome Excalidrawell é mantido e o logotipo do Excalidraw não é usado.
 - Atalho novo deve entrar em `keyboard.ts` e na lista de `components/Dialogs.tsx`.
 - Regra nova em `scene/` ou `math/` vem com teste em `scene.test.ts`.

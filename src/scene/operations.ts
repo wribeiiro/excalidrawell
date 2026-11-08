@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { GRID_SIZE, newSeed } from '../model/elements';
-import type { SceneElement } from '../model/types';
+import type { PointBinding, SceneElement } from '../model/types';
 import { isLinear } from '../model/types';
 import type { Bounds } from '../math/geometry';
 import { getCommonBounds } from '../math/geometry';
@@ -36,6 +36,10 @@ export function cloneElements(
     if (!groups.has(id)) groups.set(id, nanoid());
     return groups.get(id) ?? null;
   };
+  const remap = (binding: PointBinding | null) => {
+    const elementId = binding && ids.get(binding.elementId);
+    return binding && elementId ? { ...binding, elementId } : null;
+  };
   return source.map((el) => {
     const base = {
       ...translate(el, dx, dy),
@@ -47,8 +51,8 @@ export function cloneElements(
     if (!isLinear(base)) return base;
     return {
       ...base,
-      startBinding: base.startBinding ? (ids.get(base.startBinding) ?? null) : null,
-      endBinding: base.endBinding ? (ids.get(base.endBinding) ?? null) : null,
+      startBinding: remap(base.startBinding),
+      endBinding: remap(base.endBinding),
     };
   });
 }

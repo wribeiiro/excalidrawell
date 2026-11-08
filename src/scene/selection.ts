@@ -44,15 +44,13 @@ export type HandleName = Handle | 'rotate';
 export function getHandles(
   frame: Frame,
   zoom: number,
-  selected: readonly SceneElement[],
 ): { name: HandleName; point: Point }[] {
-  const pad = 6 / zoom;
+  const pad = 4 / zoom;
   const x0 = frame.x - pad;
   const y0 = frame.y - pad;
   const x1 = frame.x + frame.width + pad;
   const y1 = frame.y + frame.height + pad;
   const mx = (x0 + x1) / 2;
-  const my = (y0 + y1) / 2;
   const c: Point = [frame.x + frame.width / 2, frame.y + frame.height / 2];
   const list: { name: HandleName; point: Point }[] = [
     { name: 'nw', point: [x0, y0] },
@@ -60,17 +58,30 @@ export function getHandles(
     { name: 'se', point: [x1, y1] },
     { name: 'sw', point: [x0, y1] },
   ];
-  const tiny = frame.width * zoom < 48 || frame.height * zoom < 48;
-  if (!selected.some((el) => el.type === 'text') && !tiny) {
-    list.push(
-      { name: 'n', point: [mx, y0] },
-      { name: 's', point: [mx, y1] },
-      { name: 'e', point: [x1, my] },
-      { name: 'w', point: [x0, my] },
-    );
-  }
-  list.push({ name: 'rotate', point: [mx, y0 - 26 / zoom] });
+  list.push({ name: 'rotate', point: [mx, y0 - 16 / zoom] });
   return list.map((h) => ({ ...h, point: rotate(h.point, c, frame.angle) }));
+}
+
+/** Lado da moldura sob o ponteiro: as bordas inteiras redimensionam, sem alças visíveis. */
+export function edgeHandleAt(
+  frame: Frame,
+  p: Point,
+  zoom: number,
+  selected: readonly SceneElement[],
+): Handle | null {
+  if (selected.some((el) => el.type === 'text')) return null;
+  const c: Point = [frame.x + frame.width / 2, frame.y + frame.height / 2];
+  const [x, y] = rotate(p, c, -frame.angle);
+  // A faixa fica por fora do contorno, para clicar na borda da forma continuar movendo.
+  const inner = 2 / zoom;
+  const outer = 12 / zoom;
+  const dx = Math.abs(x - c[0]) - frame.width / 2;
+  const dy = Math.abs(y - c[1]) - frame.height / 2;
+  const inBandX = dx >= inner && dx <= outer;
+  const inBandY = dy >= inner && dy <= outer;
+  if (inBandY && dx <= outer) return y < c[1] ? 'n' : 's';
+  if (inBandX && dy <= outer) return x < c[0] ? 'w' : 'e';
+  return null;
 }
 
 const CURSORS = ['ns-resize', 'nesw-resize', 'ew-resize', 'nwse-resize'];

@@ -4,8 +4,8 @@ import { isLinear } from '../model/types';
 import { getCenter, getElementBounds } from '../math/geometry';
 import { getHandles, getSelected, getSelectionFrame, midpoints } from '../scene/selection';
 
-const ACCENT = '#2b50e8';
-const HILITE = '#f2b800';
+const ACCENT = '#6965db';
+const HILITE = 'rgba(105,101,219,.35)';
 
 export interface OverlayParams {
   elements: readonly SceneElement[];
@@ -15,6 +15,16 @@ export interface OverlayParams {
   marquee: { x: number; y: number; width: number; height: number } | null;
   bindTargetId: string | null;
   showHandles: boolean;
+}
+
+function square(ctx: CanvasRenderingContext2D, [x, y]: Point, size: number, lw: number) {
+  ctx.beginPath();
+  ctx.roundRect(x - size / 2, y - size / 2, size, size, size / 4);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = ACCENT;
+  ctx.stroke();
 }
 
 function dot(ctx: CanvasRenderingContext2D, [x, y]: Point, r: number, fill: string, lw: number) {
@@ -48,13 +58,13 @@ export function renderOverlay(canvas: HTMLCanvasElement, p: OverlayParams): void
   const scale = p.dpr * zoom;
   ctx.setTransform(scale, 0, 0, scale, scale * scrollX, scale * scrollY);
   const px = 1 / zoom;
-  const pad = 6 * px;
+  const pad = 4 * px;
 
   if (p.bindTargetId) {
     const target = p.elements.find((el) => el.id === p.bindTargetId);
     if (target) {
       ctx.strokeStyle = HILITE;
-      ctx.lineWidth = 3 * px;
+      ctx.lineWidth = 6 * px;
       outlineElement(ctx, target, pad);
     }
   }
@@ -63,7 +73,7 @@ export function renderOverlay(canvas: HTMLCanvasElement, p: OverlayParams): void
   if (selected.length > 0) {
     const anyLocked = selected.some((el) => el.locked);
     ctx.strokeStyle = ACCENT;
-    ctx.lineWidth = 1.25 * px;
+    ctx.lineWidth = 1 * px;
     ctx.setLineDash(anyLocked ? [6 * px, 5 * px] : selected.length > 1 ? [4 * px, 3 * px] : []);
     if (selected.length > 1) for (const el of selected) outlineElement(ctx, el, 2 * px);
     ctx.setLineDash(anyLocked ? [6 * px, 5 * px] : []);
@@ -85,15 +95,16 @@ export function renderOverlay(canvas: HTMLCanvasElement, p: OverlayParams): void
 
     if (p.showHandles && !anyLocked) {
       if (frame) {
-        for (const handle of getHandles(frame, zoom, selected)) {
-          dot(ctx, handle.point, handle.name === 'rotate' ? 5 * px : 4.5 * px, '#fff', 1.5 * px);
+        for (const handle of getHandles(frame, zoom)) {
+          if (handle.name === 'rotate') dot(ctx, handle.point, 4 * px, '#fff', 1 * px);
+          else square(ctx, handle.point, 8 * px, 1 * px);
         }
       } else {
         const el = selected[0];
         if (isLinear(el)) {
           const abs = absolutePoints(el);
-          for (const point of midpoints(abs)) dot(ctx, point, 3.5 * px, '#dfe5ff', 1 * px);
-          for (const point of abs) dot(ctx, point, 5 * px, '#fff', 1.5 * px);
+          for (const point of midpoints(abs)) dot(ctx, point, 3.5 * px, '#e0dfff', 1 * px);
+          for (const point of abs) dot(ctx, point, 5 * px, '#fff', 1 * px);
         }
       }
     }
@@ -101,7 +112,7 @@ export function renderOverlay(canvas: HTMLCanvasElement, p: OverlayParams): void
 
   if (p.marquee) {
     const m = p.marquee;
-    ctx.fillStyle = 'rgba(43,80,232,.08)';
+    ctx.fillStyle = 'rgba(105,101,219,.08)';
     ctx.fillRect(m.x, m.y, m.width, m.height);
     ctx.strokeStyle = ACCENT;
     ctx.lineWidth = 1 * px;
