@@ -10,7 +10,7 @@ Levantamento feito em novembro de 2026 para as funcionalidades que dependem de b
 | Servidor de tempo real | **Cloudflare Durable Objects + `y-partyserver`** | Um objeto por quadro, sem servidor para operar; hibernação evita pagar por conexão ociosa |
 | Login, banco e permissões | **Supabase** (Auth + Postgres + RLS) | Um só serviço, e o usuário fica no seu Postgres |
 | Imagens | **Supabase Storage** | Já autenticado pelo mesmo login e pelas mesmas políticas |
-| Hospedagem do frontend | **Cloudflare Pages** | O build já é estático e fica junto do Worker |
+| Hospedagem do frontend | **Vercel** (em uso) | Deploy e previews via GitHub Actions; o build é estático |
 
 ```mermaid
 flowchart LR

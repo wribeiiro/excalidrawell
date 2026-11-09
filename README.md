@@ -19,6 +19,18 @@ npm run dev        # http://localhost:5173
 | `npm run build` | Checa tipos e gera `dist/`, pronto para qualquer hospedagem estática |
 | `npm run preview` | Serve o build localmente |
 
+## Deploy
+
+O workflow `.github/workflows/deploy.yml` roda testes e build e publica na Vercel: pushes na `main` vão para produção e cada PR ganha uma URL de preview, visível na aba de checks do PR. O deploy automático da integração Git da Vercel fica desligado em `vercel.json`, para não publicar duas vezes.
+
+Configuração, uma única vez:
+
+1. Crie um token em [vercel.com/account/tokens](https://vercel.com/account/tokens).
+2. Importe o repositório em [vercel.com/new](https://vercel.com/new) e copie o Project ID em Project Settings > General.
+3. No GitHub, em Settings > Secrets and variables > Actions, crie `VERCEL_TOKEN` e `VERCEL_PROJECT_ID`.
+
+O workflow descobre o id da conta pela API da Vercel. O nome do time fica em `VERCEL_TEAM_SLUG`, no próprio workflow.
+
 ## O que já funciona
 
 **Desenho**

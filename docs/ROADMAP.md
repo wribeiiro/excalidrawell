@@ -14,11 +14,11 @@ Justificativas e alternativas em [STACK.md](STACK.md).
 
 ## Fase 1: acabamento do editor
 
-- [ ] CI no GitHub Actions: typecheck, testes e build
+- [x] CI no GitHub Actions: typecheck, testes e build
 - [ ] ESLint e Prettier
 - [ ] Testes de ponta a ponta com Playwright
 - [ ] Testar em Safari, Firefox e aparelhos touch reais
-- [ ] Deploy estático com preview por PR
+- [x] Deploy na Vercel com preview por PR
 - [ ] Inverter seleção na horizontal e na vertical
 - [ ] Rótulo em setas
 - [ ] Encaixe em guias de alinhamento entre elementos

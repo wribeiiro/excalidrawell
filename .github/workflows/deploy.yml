@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  deploy:
+    needs: verify
+    # PR de fork não recebe os segredos do repositório.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_SLUG: wellisson-ribeiros-projects
+      TARGET: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      PROD_FLAG: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --global vercel@65.12.1
+      # A CLI exige o id da conta, que a API informa a partir do projeto.
+      - name: Descobrir a conta da Vercel
+        run: |
+          org_id="$(curl --silent --show-error --fail-with-body \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?slug=$VERCEL_TEAM_SLUG" \
+            | jq --exit-status --raw-output '.accountId')"
+          echo "VERCEL_ORG_ID=$org_id" >> "$GITHUB_ENV"
+      - run: vercel pull --yes --environment="$TARGET"
+      - run: vercel build $PROD_FLAG
+      - id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt $PROD_FLAG)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Publicado em $url" >> "$GITHUB_STEP_SUMMARY"
