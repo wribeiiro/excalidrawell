@@ -36,8 +36,8 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_SLUG: wellisson-ribeiros-projects
       TARGET: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
       PROD_FLAG: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
     steps:
@@ -48,6 +48,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm install --global vercel@65.12.1
+      # A CLI exige o id da conta, que a API informa a partir do projeto.
+      - name: Descobrir a conta da Vercel
+        run: |
+          org_id="$(curl --silent --show-error --fail-with-body \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID?slug=$VERCEL_TEAM_SLUG" \
+            | jq --exit-status --raw-output '.accountId')"
+          echo "VERCEL_ORG_ID=$org_id" >> "$GITHUB_ENV"
       - run: vercel pull --yes --environment="$TARGET"
       - run: vercel build $PROD_FLAG
       - id: deploy

@@ -26,8 +26,10 @@ O workflow `.github/workflows/deploy.yml` roda testes e build e publica na Verce
 Configuração, uma única vez:
 
 1. Crie um token em [vercel.com/account/tokens](https://vercel.com/account/tokens).
-2. Na raiz do projeto, rode `npx vercel link` e copie `orgId` e `projectId` de `.vercel/project.json`.
-3. No GitHub, em Settings > Secrets and variables > Actions, crie `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID`.
+2. Importe o repositório em [vercel.com/new](https://vercel.com/new) e copie o Project ID em Project Settings > General.
+3. No GitHub, em Settings > Secrets and variables > Actions, crie `VERCEL_TOKEN` e `VERCEL_PROJECT_ID`.
+
+O workflow descobre o id da conta pela API da Vercel. O nome do time fica em `VERCEL_TEAM_SLUG`, no próprio workflow.
 
 ## O que já funciona
 
